@@ -2,6 +2,10 @@
 package "mizchi/brotli"
 
 // Values
+pub fn brotli_compress(Bytes) -> Bytes
+
+pub fn brotli_compress_with_quality(Bytes, Int) -> Bytes
+
 pub fn brotli_decompress(Bytes) -> Bytes raise BrotliError
 
 // Errors

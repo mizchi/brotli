@@ -1,0 +1,30 @@
+# Component build commands
+
+# Build and componentize
+default: build componentize
+
+# Type check
+check:
+    moon check --target wasm
+
+# Build wasm
+build:
+    moon build --target wasm --release
+
+# Create WebAssembly Component
+componentize:
+    moon-component componentize _build/wasm/release/build/impl/impl.wasm \
+      --wit-dir wit -o brotli.component.wasm
+
+# Verify component
+verify:
+    wasm-tools component wit brotli.component.wasm
+
+# Regenerate bindings from WIT
+generate:
+    moon-component generate wit/world.wit -o . -p mizchi/brotli-component --wkg --no-impl
+
+# Clean build artifacts
+clean:
+    moon clean
+    rm -f brotli.component.wasm

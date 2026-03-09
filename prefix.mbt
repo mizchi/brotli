@@ -95,3 +95,7 @@ let kInsertRangeLut : FixedArray[Int] = [0, 0, 8, 8, 0, 16, 8, 16, 16]
 
 ///|
 let kCopyRangeLut : FixedArray[Int] = [0, 8, 0, 8, 16, 0, 16, 8, 16]
+
+///|
+/// Maps (insert_high * 3 + copy_high) to the base command range index.
+let kRangeLookup : FixedArray[Int] = [0, 1, 4, 2, 3, 6, 5, 7, 8]

@@ -1,27 +1,28 @@
-{
+import {
+  "mizchi/brotli-component/gen/cabi" @cabi,
+  "mizchi/brotli" @brotli,
+}
+
+options(
   "is-main": true,
-  "import": [
-    { "path": "mizchi/brotli-component/gen/cabi", "alias": "cabi" },
-    { "path": "mizchi/brotli", "alias": "brotli" }
-  ],
-  "link": {
+  link: {
     "wasm": {
+      "export-memory-name": "memory",
       "exports": [
         "cabi_realloc:cabi_realloc",
         "wasmExportDecompress:mizchi:brotli/decompress#decompress",
         "wasmExportCompress:mizchi:brotli/compress#compress",
-        "wasmExportCompressWithQuality:mizchi:brotli/compress#compress-with-quality"
+        "wasmExportCompressWithQuality:mizchi:brotli/compress#compress-with-quality",
       ],
-      "export-memory-name": "memory"
     },
     "wasm-gc": {
+      "export-memory-name": "memory",
       "exports": [
         "cabi_realloc:cabi_realloc",
         "wasmExportDecompress:mizchi:brotli/decompress#decompress",
         "wasmExportCompress:mizchi:brotli/compress#compress",
-        "wasmExportCompressWithQuality:mizchi:brotli/compress#compress-with-quality"
+        "wasmExportCompressWithQuality:mizchi:brotli/compress#compress-with-quality",
       ],
-      "export-memory-name": "memory"
-    }
-  }
-}
+    },
+  },
+)

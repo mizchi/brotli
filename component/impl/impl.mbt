@@ -30,7 +30,10 @@ pub fn compress(data : Array[Byte]) -> Array[Byte] {
 /// Export: compress-with-quality
 pub fn compress_with_quality(data : Array[Byte], quality : UInt) -> Array[Byte] {
   let bytes = Bytes::from_array(data)
-  let result = @brotli.brotli_compress_with_quality(bytes, quality.reinterpret_as_int())
+  let result = @brotli.brotli_compress_with_quality(
+    bytes,
+    quality.reinterpret_as_int(),
+  )
   let arr : Array[Byte] = Array::new(capacity=result.length())
   for i = 0; i < result.length(); i = i + 1 {
     arr.push(result[i])

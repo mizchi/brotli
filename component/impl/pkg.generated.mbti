@@ -1,0 +1,26 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "mizchi/brotli-component/impl"
+
+// Values
+pub fn cabi_realloc(Int, Int, Int, Int) -> Int
+
+pub fn compress(Array[Byte]) -> Array[Byte]
+
+pub fn compress_with_quality(Array[Byte], UInt) -> Array[Byte]
+
+pub fn decompress(Array[Byte]) -> Result[Array[Byte], String]
+
+pub fn wasmExportCompress(Int, Int) -> Int
+
+pub fn wasmExportCompressWithQuality(Int, Int, Int) -> Int
+
+pub fn wasmExportDecompress(Int, Int) -> Int
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

@@ -258,8 +258,8 @@ fn hash4(data : Bytes, pos : Int) -> Int {
   let b2 = data[pos + 2].to_int()
   let b3 = data[pos + 3].to_int()
   let v = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24)
-  // FNV-like hash
-  (v * 0x1e35a7bd) & 0x7fffffff
+  let h = v * 0x1e35a7bd
+  ((h ^ (h >> 16)) & 0x7fffffff)
 }
 
 ///|
@@ -411,13 +411,10 @@ fn emit_symbol(
   symbol : Int,
   num_symbols : Int,
 ) -> Unit {
-  // Single-symbol Huffman codes consume 0 bits (decoder returns value without reading)
   if num_symbols <= 1 {
     return
   }
-  if symbol < codes.length() && depths[symbol] > 0 {
-    bw.write_bits(depths[symbol], codes[symbol])
-  }
+  bw.write_bits(depths[symbol], codes[symbol])
 }
 
 ///|

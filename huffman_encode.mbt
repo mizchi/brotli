@@ -160,6 +160,7 @@ fn build_huffman_tree_depths(
 
 ///|
 /// Ensure code lengths satisfy Kraft inequality: sum(2^-depth) == 1.
+/// Uses depth histogram to find candidates in O(max_depth) instead of O(n).
 fn fix_kraft_inequality(
   depths : FixedArray[Int],
   n : Int,
@@ -167,55 +168,62 @@ fn fix_kraft_inequality(
 ) -> Unit {
   let mut kraft_sum = 0
   let target = 1 << max_depth
+  // Build histogram of depths and track one symbol per depth level
+  let depth_count : FixedArray[Int] = FixedArray::make(max_depth + 1, 0)
   for i in 0..<n {
     if depths[i] > 0 {
       kraft_sum += 1 << (max_depth - depths[i])
+      depth_count[depths[i]] += 1
     }
   }
-  // Increase depths of least important symbols to reduce kraft_sum
+  // Increase depths (lengthen codes) to reduce kraft_sum
   while kraft_sum > target {
-    // Find symbol with shortest code to increase
-    let mut best = -1
-    let mut best_depth = 0
-    for i in 0..<n {
-      if depths[i] > 0 && depths[i] < max_depth {
-        if best < 0 || depths[i] < best_depth {
-          best = i
-          best_depth = depths[i]
-        }
-      }
+    // Find shallowest depth with a symbol
+    let mut d = 1
+    while d < max_depth && depth_count[d] == 0 {
+      d += 1
     }
-    if best < 0 {
+    if d >= max_depth {
       break
     }
-    kraft_sum -= 1 << (max_depth - depths[best])
-    depths[best] += 1
-    kraft_sum += 1 << (max_depth - depths[best])
-  }
-  // Decrease depths to use up remaining kraft budget
-  while kraft_sum < target {
-    let mut best = -1
-    let mut best_depth = 0
+    // Find a symbol at this depth and increase it
     for i in 0..<n {
-      if depths[i] > 1 {
-        if best < 0 || depths[i] > best_depth {
-          best = i
-          best_depth = depths[i]
-        }
+      if depths[i] == d {
+        kraft_sum -= 1 << (max_depth - d)
+        depths[i] += 1
+        kraft_sum += 1 << (max_depth - depths[i])
+        depth_count[d] -= 1
+        depth_count[d + 1] += 1
+        break
       }
     }
-    if best < 0 {
+  }
+  // Decrease depths (shorten codes) to use remaining kraft budget
+  while kraft_sum < target {
+    // Find deepest depth with a symbol
+    let mut d = max_depth
+    while d > 1 && depth_count[d] == 0 {
+      d -= 1
+    }
+    if d <= 1 {
       break
     }
     let new_kraft = kraft_sum -
-      (1 << (max_depth - depths[best])) +
-      (1 << (max_depth - depths[best] + 1))
+      (1 << (max_depth - d)) +
+      (1 << (max_depth - d + 1))
     if new_kraft > target {
       break
     }
-    kraft_sum -= 1 << (max_depth - depths[best])
-    depths[best] -= 1
-    kraft_sum += 1 << (max_depth - depths[best])
+    for i in 0..<n {
+      if depths[i] == d {
+        kraft_sum -= 1 << (max_depth - d)
+        depths[i] -= 1
+        kraft_sum += 1 << (max_depth - depths[i])
+        depth_count[d] -= 1
+        depth_count[d - 1] += 1
+        break
+      }
+    }
   }
 }
 
@@ -339,37 +347,40 @@ fn emit_simple_huffman_code(
 }
 
 ///|
+/// RLE entry for code-length sequence.
+priv struct RleEntry {
+  sym : Int
+  extra : Int
+  nbits : Int
+}
+
+///|
 /// Build RLE-encoded code-length sequence using repeat codes 16 and 17.
-/// Returns (symbols, extra_values, extra_nbits) arrays.
-/// Code 16: repeat previous non-zero code length, 2 extra bits (3-6 repeats)
-/// Code 17: repeat zero, 3 extra bits (3-10 repeats)
-///
-/// The decoder chains consecutive same-type RLE tokens exponentially,
-/// so we insert a raw value between consecutive RLE tokens to break chains.
+/// Uses pre-allocated FixedArray instead of 3 dynamic Arrays.
 fn build_rle_code_lengths(
   depths : FixedArray[Int],
   n : Int,
-) -> (Array[Int], Array[Int], Array[Int]) {
-  let syms : Array[Int] = []
-  let extras : Array[Int] = []
-  let nbits : Array[Int] = []
+) -> (FixedArray[RleEntry], Int) {
+  // Max output: each symbol produces at most 2 entries (chain-break + RLE)
+  let max_entries = n * 2
+  let entries : FixedArray[RleEntry] = FixedArray::make(
+    max_entries,
+    { sym: 0, extra: 0, nbits: 0 },
+  )
+  let mut len = 0
   let mut i = 0
   while i < n {
     let d = depths[i]
     if d == 0 {
-      // Count run of zeros
       let mut run = 1
       while i + run < n && depths[i + run] == 0 {
         run += 1
       }
-      // Emit using code 17 tokens, with a raw 0 between them to break chains
       let mut first_rle = true
       while run >= 3 {
         if not(first_rle) {
-          // Insert raw 0 to break decoder's chain state
-          syms.push(0)
-          extras.push(0)
-          nbits.push(0)
+          entries[len] = { sym: 0, extra: 0, nbits: 0 }
+          len += 1
           run -= 1
           i += 1
           if run < 3 {
@@ -377,40 +388,31 @@ fn build_rle_code_lengths(
           }
         }
         let repeat = if run > 10 { 10 } else { run }
-        syms.push(17)
-        extras.push(repeat - 3)
-        nbits.push(3)
+        entries[len] = { sym: 17, extra: repeat - 3, nbits: 3 }
+        len += 1
         run -= repeat
         i += repeat
         first_rle = false
       }
-      // Remaining zeros as raw
       while run > 0 {
-        syms.push(0)
-        extras.push(0)
-        nbits.push(0)
+        entries[len] = { sym: 0, extra: 0, nbits: 0 }
+        len += 1
         run -= 1
         i += 1
       }
     } else {
-      // Emit the code length value itself
-      syms.push(d)
-      extras.push(0)
-      nbits.push(0)
+      entries[len] = { sym: d, extra: 0, nbits: 0 }
+      len += 1
       i += 1
-      // Count run of the same non-zero depth
       let mut run = 0
       while i + run < n && depths[i + run] == d {
         run += 1
       }
-      // Emit using code 16 tokens, with a raw value between them
       let mut first_rle = true
       while run >= 3 {
         if not(first_rle) {
-          // Insert raw value to break chain
-          syms.push(d)
-          extras.push(0)
-          nbits.push(0)
+          entries[len] = { sym: d, extra: 0, nbits: 0 }
+          len += 1
           run -= 1
           i += 1
           if run < 3 {
@@ -418,24 +420,21 @@ fn build_rle_code_lengths(
           }
         }
         let repeat = if run > 6 { 6 } else { run }
-        syms.push(16)
-        extras.push(repeat - 3)
-        nbits.push(2)
+        entries[len] = { sym: 16, extra: repeat - 3, nbits: 2 }
+        len += 1
         run -= repeat
         i += repeat
         first_rle = false
       }
-      // Remaining as raw values
       while run > 0 {
-        syms.push(d)
-        extras.push(0)
-        nbits.push(0)
+        entries[len] = { sym: d, extra: 0, nbits: 0 }
+        len += 1
         run -= 1
         i += 1
       }
     }
   }
-  (syms, extras, nbits)
+  (entries, len)
 }
 
 ///|
@@ -446,11 +445,11 @@ fn emit_complex_huffman_code(
   n : Int,
 ) -> Unit {
   // Build RLE-encoded code-length sequence
-  let (rle_syms, rle_extras, rle_nbits) = build_rle_code_lengths(depths, n)
+  let (rle_entries, rle_len) = build_rle_code_lengths(depths, n)
   // Build code-length frequencies from the RLE sequence
   let cl_freq : FixedArray[Int] = FixedArray::make(code_length_codes, 0)
-  for i in 0..<rle_syms.length() {
-    let s = rle_syms[i]
+  for i in 0..<rle_len {
+    let s = rle_entries[i].sym
     if s < code_length_codes {
       cl_freq[s] += 1
     }
@@ -507,29 +506,24 @@ fn emit_complex_huffman_code(
   if num_cl > 1 {
     let mut cl_space = 32768
     let mut prev_code_len = 0
-    for i in 0..<rle_syms.length() {
+    for i in 0..<rle_len {
       if cl_space <= 0 {
         break
       }
-      let s = rle_syms[i]
-      // Emit the Huffman code for this code-length symbol
-      bw.write_bits(cl_depths[s], cl_codes[s])
-      // Emit extra bits for RLE codes
-      if rle_nbits[i] > 0 {
-        bw.write_bits(rle_nbits[i], rle_extras[i])
+      let e = rle_entries[i]
+      bw.write_bits(cl_depths[e.sym], cl_codes[e.sym])
+      if e.nbits > 0 {
+        bw.write_bits(e.nbits, e.extra)
       }
-      // Update space tracking and prev_code_len
-      if s < 16 {
-        if s > 0 {
-          prev_code_len = s
-          cl_space -= 32768 >> s
+      if e.sym < 16 {
+        if e.sym > 0 {
+          prev_code_len = e.sym
+          cl_space -= 32768 >> e.sym
         }
-      } else if s == 16 {
-        // Repeat previous non-zero code length
-        let repeat_count = rle_extras[i] + 3
+      } else if e.sym == 16 {
+        let repeat_count = e.extra + 3
         cl_space -= repeat_count << (15 - prev_code_len)
       }
-      // Code 17 (repeat zero) doesn't affect space or prev_code_len
     }
   }
 }

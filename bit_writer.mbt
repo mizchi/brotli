@@ -35,12 +35,16 @@ fn BitWriter::ensure_capacity(self : BitWriter, needed : Int) -> Unit {
 fn BitWriter::write_bits(self : BitWriter, nbits : Int, value : Int) -> Unit {
   self.bits = self.bits | (value << self.nbits)
   self.nbits += nbits
-  while self.nbits >= 8 {
-    self.ensure_capacity(1)
-    self.buf[self.pos] = (self.bits & 0xff).to_byte()
-    self.pos += 1
-    self.bits = self.bits >> 8
-    self.nbits -= 8
+  if self.nbits >= 8 {
+    if self.pos + 4 >= self.size {
+      self.ensure_capacity(4)
+    }
+    while self.nbits >= 8 {
+      self.buf[self.pos] = (self.bits & 0xff).to_byte()
+      self.pos += 1
+      self.bits = self.bits >> 8
+      self.nbits -= 8
+    }
   }
 }
 

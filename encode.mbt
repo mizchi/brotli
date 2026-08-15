@@ -163,7 +163,7 @@ fn encode_compressed(bw : BitWriter, data : Bytes, wbits : Int) -> Unit {
       break
     }
   }
-  if not(has_backrefs) {
+  if !has_backrefs {
     encode_store_only(bw, data)
     return
   }
@@ -259,7 +259,7 @@ fn hash4(data : Bytes, pos : Int) -> Int {
   let b3 = data[pos + 3].to_int()
   let v = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24)
   let h = v * 0x1e35a7bd
-  ((h ^ (h >> 16)) & 0x7fffffff)
+  (h ^ (h >> 16)) & 0x7fffffff
 }
 
 ///|
@@ -273,7 +273,7 @@ fn emit_compressed_meta_block(
   let data_len = data.length()
   encode_meta_block_length(bw, data_len, is_last)
   // ISUNCOMPRESSED = 0 (only if not last block)
-  if not(is_last) {
+  if !is_last {
     bw.write_bits(1, 0)
   }
   // --- Block types: 1 of each (simplest case) ---
@@ -304,7 +304,14 @@ fn emit_compressed_meta_block(
   // Precompute and cache all command encodings to avoid double computation
   let encoded : FixedArray[EncodedCommand] = FixedArray::make(
     commands.length(),
-    { cmd_code: 0, insert_code: 0, copy_code: 0, dist_code: 0, dist_extra: 0, dist_nbits: 0 },
+    {
+      cmd_code: 0,
+      insert_code: 0,
+      copy_code: 0,
+      dist_code: 0,
+      dist_extra: 0,
+      dist_nbits: 0,
+    },
   )
   for i in 0..<commands.length() {
     let cmd = commands[i]
@@ -318,7 +325,14 @@ fn emit_compressed_meta_block(
       )
       let cmd_code = combine_insert_copy_code(insert_code, copy_code, true)
       let (dist_code, dist_extra, dist_nbits) = encode_distance(cmd.distance)
-      encoded[i] = { cmd_code, insert_code, copy_code, dist_code, dist_extra, dist_nbits }
+      encoded[i] = {
+        cmd_code,
+        insert_code,
+        copy_code,
+        dist_code,
+        dist_extra,
+        dist_nbits,
+      }
       if cmd_code < 704 {
         cmd_freq[cmd_code] += 1
       }
@@ -328,7 +342,14 @@ fn emit_compressed_meta_block(
     } else {
       let (insert_code, _) = get_insert_copy_codes(cmd.insert_len, 2)
       let cmd_code = combine_insert_copy_code(insert_code, 0, false)
-      encoded[i] = { cmd_code, insert_code, copy_code: 0, dist_code: 0, dist_extra: 0, dist_nbits: 0 }
+      encoded[i] = {
+        cmd_code,
+        insert_code,
+        copy_code: 0,
+        dist_code: 0,
+        dist_extra: 0,
+        dist_nbits: 0,
+      }
       if cmd_code < 704 {
         cmd_freq[cmd_code] += 1
       }
@@ -398,7 +419,7 @@ fn ensure_nonzero_freq(freq : FixedArray[Int], n : Int) -> Unit {
       break
     }
   }
-  if not(has_nonzero) {
+  if !has_nonzero {
     freq[0] = 1
   }
 }

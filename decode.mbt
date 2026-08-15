@@ -62,7 +62,7 @@ fn decode_meta_block_length(
     }
   }
   out.meta_block_length += 1
-  if not(out.input_end) && not(out.is_metadata) {
+  if !out.input_end && !out.is_metadata {
     out.is_uncompressed = br.read_bits(1) != 0
   }
   out
@@ -245,7 +245,7 @@ fn read_huffman_code(
         num_codes += 1
       }
     }
-    if not(num_codes == 1 || space == 0) {
+    if !(num_codes == 1 || space == 0) {
       raise BrotliError::InvalidData("invalid num_codes or space")
     }
     read_huffman_code_lengths(
@@ -549,7 +549,7 @@ fn brotli_decompress_internal(br : BitReader) -> Bytes raise BrotliError {
   let mut output_size = 4096
   let mut output : FixedArray[Int] = FixedArray::make(output_size, 0)
   let output_pos : Ref[Int] = Ref::new(0)
-  while not(input_end) {
+  while !input_end {
     let block_length : FixedArray[Int] = [1 << 28, 1 << 28, 1 << 28]
     let block_type : FixedArray[Int] = [0, 0, 0]
     let num_block_types : FixedArray[Int] = [1, 1, 1]

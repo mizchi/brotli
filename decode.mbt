@@ -548,7 +548,7 @@ fn brotli_decompress_internal(br : BitReader) -> Bytes raise BrotliError {
   )
   let mut output_size = 4096
   let mut output : FixedArray[Int] = FixedArray::make(output_size, 0)
-  let output_pos : Ref[Int] = Ref::new(0)
+  let output_pos : Ref[Int] = Ref(0)
   while !input_end {
     let block_length : FixedArray[Int] = [1 << 28, 1 << 28, 1 << 28]
     let block_type : FixedArray[Int] = [0, 0, 0]

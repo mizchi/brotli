@@ -18,4 +18,3 @@ pub(all) suberror BrotliError {
 // Type aliases
 
 // Traits
-

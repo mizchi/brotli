@@ -43,11 +43,7 @@ fn assert_decompresses_to(
     msg="\{label}: length mismatch: got \{result.length()}, expected \{expected.length()}",
   )
   for i in 0..<result.length() {
-    assert_eq(
-      result[i],
-      expected[i],
-      msg="\{label}: byte \{i} mismatch",
-    )
+    assert_eq(result[i], expected[i], msg="\{label}: byte \{i} mismatch")
   }
 }
 
@@ -103,8 +99,7 @@ test "conformance: quickfox (43 bytes, uncompressed metablock)" {
   )
   assert_decompresses_to(
     "0b158054686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f6703",
-    expected,
-    "quickfox",
+    expected, "quickfox",
   )
 }
 
@@ -115,8 +110,7 @@ test "conformance: ukkonooa (119 bytes, Finnish text)" {
   )
   assert_decompresses_to(
     "1b760000144aac9b7abde1979d7f8ec282360e9ce09003f78b9e38e6b600abc3caa0c2da6636dccd808d2e21d76ee3ea4cb8f0d2b8c7c2704d3af0697ea1b84573abc4571e",
-    expected,
-    "ukkonooa",
+    expected, "ukkonooa",
   )
 }
 
@@ -138,8 +132,8 @@ test "conformance: zeros (262144 bytes -> 13 bytes)" {
 ///|
 test "conformance: empty alternate encodings" {
   let alternates = [
-    "06", "8101", "a101", "b101", "c101", "d101", "e101", "f101", "33", "35",
-    "37", "39", "3b", "3d", "3f", "1a", "81160058",
+    "06", "8101", "a101", "b101", "c101", "d101", "e101", "f101", "33", "35", "37",
+    "39", "3b", "3d", "3f", "1a", "81160058",
   ]
   for i, hex in alternates {
     assert_decompresses_to(hex, Bytes::from_array([]), "empty.\{i}")
@@ -182,7 +176,11 @@ test "roundtrip: quickfox" {
   )
   let compressed = brotli_compress(original)
   let decompressed = brotli_decompress(compressed)
-  assert_eq(decompressed.length(), original.length(), msg="roundtrip quickfox length")
+  assert_eq(
+    decompressed.length(),
+    original.length(),
+    msg="roundtrip quickfox length",
+  )
   for i in 0..<original.length() {
     assert_eq(decompressed[i], original[i], msg="roundtrip quickfox byte \{i}")
   }
@@ -200,7 +198,11 @@ test "roundtrip: 10x10y" {
   let original = Bytes::from_array(arr)
   let compressed = brotli_compress(original)
   let decompressed = brotli_decompress(compressed)
-  assert_eq(decompressed.length(), original.length(), msg="roundtrip 10x10y length")
+  assert_eq(
+    decompressed.length(),
+    original.length(),
+    msg="roundtrip 10x10y length",
+  )
   for i in 0..<original.length() {
     assert_eq(decompressed[i], original[i], msg="roundtrip 10x10y byte \{i}")
   }
@@ -215,7 +217,11 @@ test "roundtrip: 64x" {
   let original = Bytes::from_array(arr)
   let compressed = brotli_compress(original)
   let decompressed = brotli_decompress(compressed)
-  assert_eq(decompressed.length(), original.length(), msg="roundtrip 64x length")
+  assert_eq(
+    decompressed.length(),
+    original.length(),
+    msg="roundtrip 64x length",
+  )
   for i in 0..<original.length() {
     assert_eq(decompressed[i], original[i], msg="roundtrip 64x byte \{i}")
   }
@@ -247,7 +253,11 @@ test "roundtrip: zeros 1024" {
   let original = Bytes::from_array(arr)
   let compressed = brotli_compress(original)
   let decompressed = brotli_decompress(compressed)
-  assert_eq(decompressed.length(), original.length(), msg="roundtrip zeros length")
+  assert_eq(
+    decompressed.length(),
+    original.length(),
+    msg="roundtrip zeros length",
+  )
   for i in 0..<original.length() {
     assert_eq(decompressed[i], original[i], msg="roundtrip zeros byte \{i}")
   }
